@@ -23,6 +23,8 @@ const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, v
 export const PokedexModal: React.FC<PokedexModalProps> = ({ member, canEdit, onClose, onUpdate, onEditChange }) => {
   const [isEditing, setIsEditing] = useState(false);
 
+  const [isUploading, setIsUploading] = useState(false);
+
   useEffect(() => {
     onEditChange?.(isEditing);
   }, [isEditing, onEditChange]);
@@ -135,13 +137,14 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ member, canEdit, onC
     } : null);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
           // Create a canvas to resize the image
           const canvas = document.createElement('canvas');
           let width = img.width;
@@ -166,9 +169,30 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ member, canEdit, onC
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            // Use a slightly lower quality to save space
             const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            handleChange('imageUrl', dataUrl);
+            
+            try {
+              // Upload to Vercel Blob via our API
+              const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  filename: `cohort-${editedMember.id}-${Date.now()}.jpg`,
+                  contentType: 'image/jpeg',
+                  content: dataUrl
+                })
+              });
+
+              if (!response.ok) throw new Error('Upload failed');
+              
+              const blob = await response.json();
+              handleChange('imageUrl', blob.url);
+            } catch (error) {
+              console.error("Upload error:", error);
+              alert("Failed to upload image to Vercel Blob. Check your BLOB_READ_WRITE_TOKEN.");
+            } finally {
+              setIsUploading(false);
+            }
           }
         };
         img.src = event.target?.result as string;
@@ -507,14 +531,22 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ member, canEdit, onC
                   <div className="mt-4 bg-white/50 p-3 rounded-xl border border-white/20">
                     <div className="flex items-center justify-between mb-2">
                       <h5 className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">Image Settings</h5>
-                      <label className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded text-[11px] font-bold text-zinc-600 cursor-pointer hover:bg-zinc-50 transition-colors">
-                        <Upload className="w-4 h-4" />
-                        Upload Image
+                      <label className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 bg-white border border-zinc-200 rounded text-[11px] font-bold text-zinc-600 cursor-pointer hover:bg-zinc-50 transition-colors",
+                        isUploading && "opacity-50 cursor-not-allowed"
+                      )}>
+                        {isUploading ? (
+                          <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {isUploading ? 'Uploading...' : 'Upload Image'}
                         <input 
                           type="file" 
                           className="hidden" 
                           accept="image/*"
                           onChange={handleFileUpload}
+                          disabled={isUploading}
                         />
                       </label>
                     </div>
