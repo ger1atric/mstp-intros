@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-pixel: "Press Start 2P", system-ui;
+
+  --color-pokedex-red: #dc0a2d;
+  --color-pokedex-blue: #28a9ff;
+  --color-pokedex-yellow: #ffcc00;
+  --color-pokedex-green: #51ae5f;
+  --color-pokedex-bg-light: #e0f7fa;
+  --color-pokedex-panel-green: #4caf50;
+  --color-pokedex-panel-yellow: #fbc02d;
+  --color-pokedex-panel-blue: #03a9f4;
+}
+
+@layer base {
+  body {
+    @apply bg-[#f0f0f0] text-zinc-900 font-sans;
+  }
+}
+
+.pokemon-card-shadow {
+  box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+}
+
+.pokemon-panel {
+  @apply rounded-xl border-2 border-black/10 overflow-hidden;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.type-badge {
+  @apply px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-white shadow-sm;
+}
+
+/* Basic High-Contrast Type Colors */
+.type-Neuroscience { @apply bg-indigo-600; }
+.type-Computation { @apply bg-blue-600; }
+.type-Genetics { @apply bg-emerald-600; }
+.type-Immunology { @apply bg-red-600; }
+.type-Cardiology { @apply bg-rose-600; }
+.type-Bioengineering { @apply bg-cyan-700; }
+.type-Bioinformatics { @apply bg-violet-600; }
+.type-Epidemiology { @apply bg-orange-600; }
+.type-Biochemistry { @apply bg-amber-700; }
+.type-Structural-Biology { @apply bg-slate-600; }
+.type-Psychiatry { @apply bg-fuchsia-600; }
+.type-Chemistry { @apply bg-blue-800; }
+.type-Virology { @apply bg-purple-700; }
+.type-Oncology { @apply bg-red-800; }
+.type-Endocrinology { @apply bg-orange-700; }
+.type-Orthopedics { @apply bg-stone-600; }
+
+.pokedex-gradient-bg {
+  background: radial-gradient(circle at center, #b2ebf2 0%, #80deea 100%);
+}
+
+.pokedex-panel-header {
+  @apply bg-zinc-800 text-white px-4 py-2 font-bold text-sm flex items-center justify-between;
+}
