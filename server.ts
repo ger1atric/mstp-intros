@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import { COHORT_DATA } from "./src/data/cohort";
 import path from "path";
 import { fileURLToPath } from "url";
+import { put } from "@vercel/blob";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +59,30 @@ async function startServer() {
     } catch (error) {
       console.error("Error updating member:", error);
       res.status(500).json({ error: "Failed to update member" });
+    }
+  });
+
+  app.post("/api/upload", async (req, res) => {
+    try {
+      const { filename, contentType, content } = req.body;
+      
+      if (!content || !filename) {
+        return res.status(400).json({ error: "Missing file content or filename" });
+      }
+
+      // Convert base64 to buffer
+      const buffer = Buffer.from(content.split(",")[1], "base64");
+      
+      const blob = await put(filename, buffer, {
+        contentType,
+        access: 'public',
+        token: process.env.BLOB_READ_WRITE_TOKEN
+      });
+
+      res.json(blob);
+    } catch (error) {
+      console.error("Error uploading to Vercel Blob:", error);
+      res.status(500).json({ error: "Failed to upload image" });
     }
   });
 

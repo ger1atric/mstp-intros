@@ -6,36 +6,30 @@ import { PokedexCard } from './components/PokedexCard';
 import { PokedexModal } from './components/PokedexModal';
 
 export default function App() {
-  const [cohort, setCohort] = useState<CohortMember[]>(() => {
-    const saved = localStorage.getItem('mstp_cohort_data');
-    if (!saved) return COHORT_DATA;
-    
-    try {
-      const parsedSaved = JSON.parse(saved) as CohortMember[];
-      // Merge: Keep saved edits for existing members, but add any new members from COHORT_DATA
-      const merged = [...parsedSaved];
-      
-      COHORT_DATA.forEach(defaultMember => {
-        const exists = merged.some(m => m.id === defaultMember.id);
-        if (!exists) {
-          merged.push(defaultMember);
-        }
-      });
-      
-      // Sort by ID to keep order consistent
-      return merged.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-    } catch (e) {
-      console.error("Failed to parse saved cohort data", e);
-      return COHORT_DATA;
-    }
-  });
+  const [cohort, setCohort] = useState<CohortMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<CohortMember | null>(null);
   const [canEdit, setCanEdit] = useState(true);
   const [isModalEditing, setIsModalEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('mstp_cohort_data', JSON.stringify(cohort));
-  }, [cohort]);
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/cohort');
+        if (response.ok) {
+          const data = await response.json();
+          setCohort(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cohort data:", error);
+        // Fallback to default if API fails
+        setCohort(COHORT_DATA);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -57,12 +51,45 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedMember, cohort]);
+  }, [selectedMember, cohort, isModalEditing]);
 
-  const handleUpdateMember = (updatedMember: CohortMember) => {
+  const handleUpdateMember = async (updatedMember: CohortMember) => {
+    // Optimistic update
     setCohort(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
     setSelectedMember(updatedMember);
+
+    try {
+      const response = await fetch(`/api/cohort/${updatedMember.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedMember),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save update to server');
+      }
+    } catch (error) {
+      console.error("Error updating member:", error);
+      // Revert or show error if needed
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-pokedex-red flex flex-col items-center justify-center text-white font-pixel">
+        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner border-4 border-zinc-200 mb-4 animate-spin">
+          <img 
+            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" 
+            alt="Loading" 
+            className="w-12 h-12"
+          />
+        </div>
+        <p className="text-sm uppercase tracking-widest">Loading Pokedex...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-zinc-900 selection:bg-pokedex-red selection:text-white">
